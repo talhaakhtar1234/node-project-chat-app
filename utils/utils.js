@@ -1,18 +1,15 @@
 const users = [];
 
-// Join user to chat
 function userJoin(id, username, room) {
   const user = { id, username, room };
   users.push(user);
   return user;
 }
 
-// Get current user
 function getCurrUser(id) {
   return users.find(user => user.id === id);
 }
 
-// User leave chat
 function userLeave(id) {
   const index = users.findIndex(user => user.id === id);
 
@@ -21,14 +18,19 @@ function userLeave(id) {
   }
 }
 
-// Get room users
 function getRoomUsers(room) {
   return users.filter(user => user.room === room);
+}
+
+function getAvailableRooms() {
+  const rooms = [...new Set(users.map(user => user.room))];
+  return rooms;
 }
 
 module.exports = {
   userJoin,
   getCurrUser,
   userLeave,
-  getRoomUsers
+  getRoomUsers,
+  getAvailableRooms
 };
