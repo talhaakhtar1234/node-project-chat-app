@@ -1,37 +1,54 @@
 const express = require('express');
-const app = express();
 const http = require('http');
-const server = http.createServer(app);
 const socketio = require('socket.io');
-const io = socketio(server);
-const formatMessages=require('./utils/message')
-
 const path = require('path');
+const {
+  userJoin,
+  getCurrUser,
+  userLeave
+} = require('./utils/utils');
+const formatMessages = require('./utils/message');
 
-const botName='ChatCord Bot'
+const app = express();
+const server = http.createServer(app);
+const io = socketio(server);
+
+const botName = 'ChatCord Bot';
 
 // Set Static Folder
 app.use(express.static(path.join(__dirname, 'public')));
 
-
-
-
 // Run when client connects
-io.on('connection', (socket) => {
-    // Send a welcome message to the connected client
-    socket.emit('message', formatMessages(botName,'Welcome to ChatCord'));
+io.on('connection', handleConnection);
 
-    // Broadcast to all clients that a new user has joined the chat
-    socket.broadcast.emit('message', formatMessages(botName,'A user has joined the chat'));
+function handleConnection(socket) {
+  socket.on('joinRoom', handleJoinRoom.bind(null, socket));
+  socket.on('chatMessage', handleChatMessage.bind(null, socket));
+  socket.on('disconnect', handleDisconnect.bind(null, socket));
+}
 
-    socket.on('disconnect', () => {
-        io.emit('message', formatMessages(botName,'A user has left the Chat'))
-    })
-    //listen for chat messsage
-    socket.on('chatMessage',msg =>{
-        io.emit('message',formatMessages('USER',msg))
-    })
-});
+function handleJoinRoom(socket, { username, room }) {
+  const user = userJoin(socket.id, username, room);
+  socket.join(user.room);
+
+  // Send a welcome message to the connected client
+  socket.emit('message', formatMessages(botName, 'Welcome to ChatCord'));
+
+  // Broadcast to all clients in the room that a new user has joined the chat
+  socket.broadcast.to(user.room).emit('message', formatMessages(botName, `${user.username} has joined the chat`));
+}
+
+function handleChatMessage(socket, msg) {
+  const user = getCurrUser(socket.id);
+  io.to(user.room).emit('message', formatMessages(user.username, msg));
+}
+
+function handleDisconnect(socket) {
+  const user = userLeave(socket.id);
+  if (user) {
+    io.to(user.room).emit('message', formatMessages(botName, `${user.username} has left the chat`));
+  }
+}
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
