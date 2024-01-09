@@ -9,7 +9,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
 
-const botName = 'ChatCord Bot';
+const botName = 'Chat Bot';
 
 // Set Static Folder
 app.use(express.static(path.join(__dirname, 'public')));
